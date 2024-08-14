@@ -125,14 +125,14 @@
             </table>
         </div>
 
-        <button class="btn btn-primary" data-toggle="modal" data-target="#summaryModal">Show Summary</button>
+        <button class="btn btn-primary" data-toggle="modal" data-target="#summaryModal">Components Summary</button>
         
         <!-- Summary Modal -->
         <div class="modal fade" id="summaryModal" tabindex="-1" role="dialog" aria-labelledby="summaryModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="summaryModalLabel">Netlist Summary</h5>
+                        <h5 class="modal-title" id="summaryModalLabel">Components Summary</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
@@ -147,76 +147,77 @@
                                 </tr>
                             </thead>
                             <tbody>
+
                                 <tr>
-                                    <td>Total Refs</td>
-                                    <td>{{ total_refs1 }}</td>
-                                    <td>{{ total_refs2 }}</td>
-                                </tr>
-                                <tr>
-                                    <td>Total Capacitors</td>
+                                    <td>Capacitors</td>
                                     <td>{{ total_capacitors1 }}</td>
                                     <td>{{ total_capacitors2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total Resistors</td>
+                                    <td>Resistors</td>
                                     <td>{{ total_resistors1 }}</td>
                                     <td>{{ total_resistors2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total ICs</td>
+                                    <td>ICs</td>
                                     <td>{{ total_ics1 }}</td>
                                     <td>{{ total_ics2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total FETs</td>
+                                    <td>FETs</td>
                                     <td>{{ total_fets1 }}</td>
                                     <td>{{ total_fets2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total Connectors</td>
+                                    <td>Connectors</td>
                                     <td>{{ total_connectors1 }}</td>
                                     <td>{{ total_connectors2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total Inductors</td>
+                                    <td>Inductors</td>
                                     <td>{{ total_inductors1 }}</td>
                                     <td>{{ total_inductors2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total Mounting Holes</td>
+                                    <td>Mounting Holes</td>
                                     <td>{{ total_mounting_holes1 }}</td>
                                     <td>{{ total_mounting_holes2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total TestPads</td>
+                                    <td>TestPads</td>
                                     <td>{{ total_testpads1 }}</td>
                                     <td>{{ total_testpads2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total Fiducials</td>
+                                    <td>Fiducials</td>
                                     <td>{{ total_fiducials1 }}</td>
                                     <td>{{ total_fiducials2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total Diodes/LEDs</td>
+                                    <td>Diodes/LEDs</td>
                                     <td>{{ total_diodes_leds1 }}</td>
                                     <td>{{ total_diodes_leds2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total Crystals</td>
+                                    <td>Crystals</td>
                                     <td>{{ total_crystals1 }}</td>
                                     <td>{{ total_crystals2 }}</td>
                                 </tr>
                                 <tr>
-                                    <td>Total Other Components</td>
+                                    <td>Other Components</td>
                                     <td>{{ total_others1 }}</td>
                                     <td>{{ total_others2 }}</td>
                                 </tr>
                                 <tr>
+                                    <td>Total Components</td>
+                                    <td>{{ total_refs1 }}</td>
+                                    <td>{{ total_refs2 }}</td>
+                                </tr>
+                                <!-- <tr>
                                     <td>Total Nets</td>
                                     <td>{{ total_nets1 }}</td>
                                     <td>{{ total_nets2 }}</td>
-                                </tr>
+                                </tr> -->
                             </tbody>
                         </table>
                     </div>
