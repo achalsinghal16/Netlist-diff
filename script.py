@@ -215,7 +215,7 @@ def generate_stats(components):
 
 def generate_html_report(connections1, connections2, output_file, file1_name, file2_name, stats1, stats2):
     env = Environment(loader=FileSystemLoader('.'))
-    template = env.get_template('template1.html')
+    template = env.get_template('template.html')
 
     connection_map = {}
 
