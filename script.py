@@ -60,7 +60,7 @@ def parse_netlist(file_path):
                 if comp_match:
                     ref = comp_match.group(1)
                     components[ref] = {}
-                    print(f"Found component: {ref}")
+                    #print(f"Found component: {ref}")
                 continue
             
             # Handle component details
@@ -107,7 +107,16 @@ def count_components(components):
         'Others': 0
     }
 
+    processed_refs = set()  # Keep track of processed component references
+
     for ref in components:
+        if ref in processed_refs:
+            print(f"Skipping duplicate component: {ref}")
+            continue
+        
+        processed_refs.add(ref)
+
+        #print(f"Processing component: {ref} - {components[ref]}")
         if ref.startswith('C'):
             counts['Capacitors'] += 1
         elif ref.startswith('R'):
@@ -148,7 +157,7 @@ def print_component_counts(counts1, counts2):
         print(f"{key}: {value}")
 
 
-def generate_stats(connections):
+def generate_stats(components):
     stats = {
         'Total Refs': 0,
         'Total Capacitors': 0,
@@ -163,42 +172,45 @@ def generate_stats(connections):
         'Total Diodes/LEDs': 0,
         'Total Crystals': 0,
         'Total Others': 0,
-        'Total Nets': len(connections),
+        'Total Nets': 0,  # This can be updated separately if needed
         'Total Components': 0
     }
-    refs = set()
 
-    for net_connections in connections.values():
-        for _, _, ref in net_connections:
-            refs.add(ref)
-            stats['Total Components'] += 1
-            if ref.startswith('C'):
-                stats['Total Capacitors'] += 1
-            elif ref.startswith('R'):
-                stats['Total Resistors'] += 1
-            elif ref.startswith('IC') or ref.startswith('U'):
-                stats['Total ICs'] += 1
-            elif ref.startswith('Q') or ref.startswith('T') or ref.startswith('FET'):
-                stats['Total FETs'] += 1
-            elif ref.startswith('J') or ref.startswith('GPIO'):
-                stats['Total Connectors'] += 1
-            elif ref.startswith('L'):
-                stats['Total Inductors'] += 1
-            elif ref.startswith('MH') or ref.startswith('H'):
-                stats['Total Mounting Holes'] += 1
-            elif ref.startswith('TP'):
-                stats['Total TestPads'] += 1
-            elif ref.startswith('FID'):
-                stats['Total Fiducials'] += 1
-            elif ref.startswith('D'):
-                stats['Total Diodes/LEDs'] += 1
-            elif ref.startswith('X'):
-                stats['Total Crystals'] += 1
-            else:
-                stats['Total Others'] += 1
+    refs = set()
+    
+    for ref in components:
+        refs.add(ref)
+        stats['Total Components'] += 1
+        if ref.startswith('C'):
+            stats['Total Capacitors'] += 1
+        elif ref.startswith('R'):
+            stats['Total Resistors'] += 1
+        elif ref.startswith('IC') or ref.startswith('U'):
+            stats['Total ICs'] += 1
+        elif ref.startswith('Q') or ref.startswith('T') or ref.startswith('FET'):
+            stats['Total FETs'] += 1
+        elif ref.startswith('J') or ref.startswith('GPIO'):
+            stats['Total Connectors'] += 1
+        elif ref.startswith('L'):
+            stats['Total Inductors'] += 1
+        elif ref.startswith('MH') or ref.startswith('H'):
+            stats['Total Mounting Holes'] += 1
+        elif ref.startswith('TP'):
+            stats['Total TestPads'] += 1
+            print(f"Debug: Found TestPad {ref}")  # Debug print
+        elif ref.startswith('FID'):
+            stats['Total Fiducials'] += 1
+        elif ref.startswith('D'):
+            stats['Total Diodes/LEDs'] += 1
+        elif ref.startswith('X'):
+            stats['Total Crystals'] += 1
+        else:
+            stats['Total Others'] += 1
 
     stats['Total Refs'] = len(refs)
+    #print(stats)
     return stats
+
 
 
 def generate_html_report(connections1, connections2, output_file, file1_name, file2_name, stats1, stats2):
@@ -243,11 +255,11 @@ def generate_html_report(connections1, connections2, output_file, file1_name, fi
             'net2_name': net2_name
         })
 
-    rows.sort(key=lambda x: x['class'] == 'match', reverse=True)  # Sort with matches first
+    rows.sort(key=lambda x: x['class'] == 'match', reverse=False)  # Sort with matches first
 
     # Debug print
-    print(f"Stats1: {stats1}")
-    print(f"Stats2: {stats2}")
+    #print(f"Stats1: {stats1}")
+    #print(f"Stats2: {stats2}")
     
     report = template.render(
         file1_name=file1_name,
@@ -306,8 +318,8 @@ def main():
     counts1 = count_components(components1)
     counts2 = count_components(components2)
 
-    stats1 = generate_stats(connections1)
-    stats2 = generate_stats(connections2)
+    stats1 = generate_stats(components1)
+    stats2 = generate_stats(components2)
 
     print_component_counts(counts1, counts2)
     
