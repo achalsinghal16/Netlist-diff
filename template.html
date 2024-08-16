@@ -48,6 +48,8 @@
         }
         .match { background-color: #d4edda; }
         .mismatch { background-color: #f8d7da; }
+        .ok { background-color: #1ee5ff; }
+        .not-ok { background-color: #b3b3b3; }
         .serial-number { width: 50px; }
         .legend {
             margin-bottom: 20px;
@@ -107,13 +109,13 @@
                         <th colspan="4">{{ file2_name }}</th>
                     </tr>
                     <tr>
+                        <th>Ref</th>
                         <th>Pin Name</th>
                         <th>Pin Function</th>
-                        <th>Ref</th>
                         <th>Net Name</th>
+                        <th>Ref</th>
                         <th>Pin Name</th>
                         <th>Pin Function</th>
-                        <th>Ref</th>
                         <th>Net Name</th>
                     </tr>
                 </thead>
@@ -121,18 +123,49 @@
                     {% for row in data_rows %}
                         <tr class="{{ row.class }}">
                             <td>{{ loop.index }}</td> <!-- Serial Number -->
+                            <td>{{ row.ref1 }}</td>
                             <td>{{ row.pin1 }}</td>
                             <td>{{ row.pinfunction1 }}</td>
-                            <td>{{ row.ref1 }}</td>
                             <td>{{ row.net1_name }}</td>
+                            <td>{{ row.ref2 }}</td>
                             <td>{{ row.pin2 }}</td>
                             <td>{{ row.pinfunction2 }}</td>
+                            <td>{{ row.net2_name }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% for row in ok_rows %}
+                        <tr class="{{ row.class }}">
+                            <td>{{ loop.index }}</td> <!-- Serial Number -->
+                            <td>{{ row.ref1 }}</td>
+                            <td>{{ row.pin1 }}</td>
+                            <td>{{ row.pinfunction1 }}</td>
+                            <td>{{ row.net1_name }}</td>
                             <td>{{ row.ref2 }}</td>
+                            <td>{{ row.pin2 }}</td>
+                            <td>{{ row.pinfunction2 }}</td>
+                            <td>{{ row.net2_name }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% for row in not_ok_rows %}
+                        <tr class="{{ row.class }}">
+                            <td>{{ loop.index }}</td> <!-- Serial Number -->
+                            <td>{{ row.ref1 }}</td>
+                            <td>{{ row.pin1 }}</td>
+                            <td>{{ row.pinfunction1 }}</td>
+                            <td>{{ row.net1_name }}</td>
+                            <td>{{ row.ref2 }}</td>
+                            <td>{{ row.pin2 }}</td>
+                            <td>{{ row.pinfunction2 }}</td>
                             <td>{{ row.net2_name }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <div>
+            <p>Total Mismatched Entries: {{ total_mismatched }}</p>
+    <p>Total Matched Entries: {{ total_matched }}</p>
         </div>
 
         <div class="button-group">

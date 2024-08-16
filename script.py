@@ -14,6 +14,7 @@ def parse_netlist(file_path):
             lines = file.readlines()
         
         net_name = None
+        ref = None  # Initialize ref to manage component details
         in_components_section = False
         in_nets_section = False
         
@@ -46,6 +47,9 @@ def parse_netlist(file_path):
                     pin = node_match.group(2)
                     pinfunction = node_match.group(4) if node_match.group(4) else ''
                     if net_name:
+                        # Debug print statements
+                        #print(f"Debug: Parsing node - ref: {ref}, pin: {pin}, pinfunction: {pinfunction}, net_name: {net_name}")
+                        
                         connections.setdefault(net_name, []).append((pin, pinfunction, ref))
                         refs.add(ref)
             
@@ -77,6 +81,7 @@ def parse_netlist(file_path):
         print(f"Error: An unexpected error occurred while parsing {file_path} - {e}")
     
     return connections, refs, components
+
 
 
 def count_components(components):
@@ -171,7 +176,10 @@ def generate_stats(components):
     for ref in components:
         refs.add(ref)
         stats['Total Components'] += 1
-        if ref.startswith('C'):
+        if ref.startswith('TP'):
+            stats['Total TestPads'] += 1
+            detailed_components['TestPads'].append(ref)
+        elif ref.startswith('C'):
             stats['Total Capacitors'] += 1
             detailed_components['Capacitors'].append(ref)
         elif ref.startswith('R'):
@@ -181,8 +189,10 @@ def generate_stats(components):
             stats['Total ICs'] += 1
             detailed_components['ICs'].append(ref)
         elif ref.startswith('Q') or ref.startswith('T') or ref.startswith('FET'):
-            stats['Total FETs'] += 1
-            detailed_components['FETs'].append(ref)
+            # Ensure 'TP' is not included in FETs count
+            if not ref.startswith('TP'):
+                stats['Total FETs'] += 1
+                detailed_components['FETs'].append(ref)
         elif ref.startswith('J') or ref.startswith('GPIO'):
             stats['Total Connectors'] += 1
             detailed_components['Connectors'].append(ref)
@@ -192,9 +202,6 @@ def generate_stats(components):
         elif ref.startswith('MH') or ref.startswith('H'):
             stats['Total Mounting Holes'] += 1
             detailed_components['Mounting Holes'].append(ref)
-        elif ref.startswith('TP'):
-            stats['Total TestPads'] += 1
-            detailed_components['TestPads'].append(ref)
         elif ref.startswith('FID'):
             stats['Total Fiducials'] += 1
             detailed_components['Fiducials'].append(ref)
@@ -212,52 +219,164 @@ def generate_stats(components):
     return stats, detailed_components
 
 
+
+def normalize_pinfunction(pinfunction):
+    """Normalize pinfunction by stripping 'Pin_' if present at the start and if the remaining part is purely numeric."""
+    if pinfunction.startswith('Pin_'):
+        # Extract the remainder after 'Pin_' and check if it is purely numeric
+        remainder = pinfunction[4:]
+        if remainder.isdigit():  # Check if the remainder is a number
+            return remainder
+    return pinfunction
+
+
 def generate_html_report(connections1, connections2, output_file, file1_name, file2_name, stats1, stats2, details1, details2):
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('template.html')
 
-    connection_map = {}
-
-    def add_connections_to_map(connections, label):
+    # Step 1: Create maps for netlist connections
+    def create_connection_map(connections):
+        connection_map = {}
         for net_name, net_connections in connections.items():
             for conn in net_connections:
-                key = (conn[1], conn[2])
+                ref = conn[2]
+                pin = conn[0]
+                pinfunction = conn[1]
+                key = (ref, pin)  # Simplify the key to only ref and pin
                 if key not in connection_map:
-                    connection_map[key] = {'net1': None, 'net2': None, 'details1': [], 'details2': [], 'refs1': [], 'refs2': []}
-                connection_map[key][label] = net_name
-                connection_map[key]['details' + label[-1]].append(conn)
-                connection_map[key]['refs' + label[-1]].append(conn[2])
+                    connection_map[key] = {'net': net_name, 'details': []}
+                connection_map[key]['details'].append({'pinfunction': pinfunction, 'net': net_name, 'details': conn})
+        return connection_map
 
-    add_connections_to_map(connections1, 'net1')
-    add_connections_to_map(connections2, 'net2')
+    connection_map1 = create_connection_map(connections1)
+    connection_map2 = create_connection_map(connections2)
 
-    rows = []
+    mismatched_entries = []
+    matched_entries = []
 
-    for key, value in connection_map.items():
-        pin, pinfunction = key
-        net1_name = value['net1'] if value['net1'] else 'N/A'
-        net2_name = value['net2'] if value['net2'] else 'N/A'
-        refs1 = ', '.join(set(value['refs1'])) if value['refs1'] else 'N/A'
-        refs2 = ', '.join(set(value['refs2'])) if value['refs2'] else 'N/A'
+    # Step 2: Compare connections based on ref and pin
+    for key, value1 in connection_map1.items():
+        ref, pin = key
 
-        if net1_name == net2_name:
-            class_name = 'match'
+        # Check if ref starts with specific prefixes
+        if ref.startswith(('U', 'IC', 'J', 'Q', 'X')):
+            value2 = connection_map2.get(key)
+
+            net1_name = value1['net'] if value1 else 'N/A'
+            net2_name = value2['net'] if value2 else 'N/A'
+
+            if value2:
+                if net1_name == net2_name:
+                    class_name = 'match'
+                    pinfunction1 = next((d['pinfunction'] for d in value1['details']), 'N/A')
+                    pinfunction2 = next((d['pinfunction'] for d in value2['details']), 'N/A')
+                    matched_entries.append({
+                        'pin1': pin,
+                        'pinfunction1': pinfunction1,
+                        'ref1': ref,
+                        'net1_name': net1_name,
+                        'pin2': pin,
+                        'pinfunction2': pinfunction2,
+                        'ref2': ref,
+                        'net2_name': net2_name,
+                        'class': class_name
+                    })
+                else:
+                    class_name = 'mismatch'
+                    pinfunction1 = next((d['pinfunction'] for d in value1['details']), 'N/A')
+                    pinfunction2 = next((d['pinfunction'] for d in value2['details']), 'N/A')
+                    mismatched_entries.append({
+                        'pin1': pin,
+                        'pinfunction1': pinfunction1,
+                        'ref1': ref,
+                        'net1_name': net1_name,
+                        'pin2': pin,
+                        'pinfunction2': pinfunction2,
+                        'ref2': ref,
+                        'net2_name': net2_name,
+                        'class': class_name
+                    })
+            else:
+                class_name = 'mismatch'
+                pinfunction1 = next((d['pinfunction'] for d in value1['details']), 'N/A')
+                mismatched_entries.append({
+                    'pin1': pin,
+                    'pinfunction1': pinfunction1,
+                    'ref1': ref,
+                    'net1_name': net1_name,
+                    'pin2': pin,
+                    'pinfunction2': 'N/A',
+                    'ref2': ref,
+                    'net2_name': 'N/A',
+                    'class': class_name
+                })
+
         else:
-            class_name = 'mismatch'
+            # Handle cases where ref does not start with specific prefixes
+            # Match based on ref and pin
+            for net_name, net_connections in connections1.items():
+                for conn in net_connections:
+                    if conn[2] == ref and conn[0] == pin:
+                        value2 = connection_map2.get((ref, pin))
 
-        rows.append({
-            'pin1': pin,
-            'pinfunction1': pinfunction,
-            'ref1': value['refs1'][0] if value['refs1'] else 'N/A',
-            'net1_name': net1_name,
-            'pin2': pin,
-            'pinfunction2': pinfunction,
-            'ref2': value['refs2'][0] if value['refs2'] else 'N/A',
-            'net2_name': net2_name,
-            'class': class_name
-        })
+                        net2_name = value2['net'] if value2 else 'N/A'
+                        net1_name = net_name
 
-    rows.sort(key=lambda x: x['class'] == 'match', reverse=False)  # Sort with matches first
+                        if value2:
+                            if net1_name == net2_name:
+                                class_name = 'match'
+                                pinfunction1 = conn[1]
+                                pinfunction2 = next((d['pinfunction'] for d in value2['details']), 'N/A')
+                                matched_entries.append({
+                                    'pin1': pin,
+                                    'pinfunction1': pinfunction1,
+                                    'ref1': ref,
+                                    'net1_name': net1_name,
+                                    'pin2': pin,
+                                    'pinfunction2': pinfunction2,
+                                    'ref2': ref,
+                                    'net2_name': net2_name,
+                                    'class': class_name
+                                })
+                            else:
+                                class_name = 'mismatch'
+                                pinfunction1 = conn[1]
+                                pinfunction2 = next((d['pinfunction'] for d in value2['details']), 'N/A')
+                                mismatched_entries.append({
+                                    'pin1': pin,
+                                    'pinfunction1': pinfunction1,
+                                    'ref1': ref,
+                                    'net1_name': net1_name,
+                                    'pin2': pin,
+                                    'pinfunction2': pinfunction2,
+                                    'ref2': ref,
+                                    'net2_name': net2_name,
+                                    'class': class_name
+                                })
+                        else:
+                            class_name = 'mismatch'
+                            pinfunction1 = conn[1]
+                            mismatched_entries.append({
+                                'pin1': pin,
+                                'pinfunction1': pinfunction1,
+                                'ref1': ref,
+                                'net1_name': net1_name,
+                                'pin2': pin,
+                                'pinfunction2': 'N/A',
+                                'ref2': ref,
+                                'net2_name': 'N/A',
+                                'class': class_name
+                            })
+
+    # Sort mismatched entries alphabetically by reference
+    mismatched_entries.sort(key=lambda x: x['ref1'])
+    # Sort matched entries alphabetically by reference
+    matched_entries.sort(key=lambda x: x['ref1'])
+
+    rows = mismatched_entries + matched_entries  # First mismatches, then matches
+
+    total_mismatched = len(mismatched_entries)
+    total_matched = len(matched_entries)
 
     with open(output_file, 'w') as file:
         file.write(template.render(
@@ -313,8 +432,11 @@ def generate_html_report(connections1, connections2, output_file, file1_name, fi
             fiducials2=details2['Fiducials'],
             diodes_leds2=details2['Diodes/LEDs'],
             crystals2=details2['Crystals'],
-            others2=details2['Others']
+            others2=details2['Others'],
+            total_mismatched=total_mismatched,
+            total_matched=total_matched
         ))
+
 
 
 def main():
