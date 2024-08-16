@@ -19,9 +19,6 @@ def parse_netlist(file_path):
         
         for line in lines:
             line = line.strip()  # Remove leading/trailing whitespace
-            
-            # Debug output
-            #print(f"Processing line: {line}")
 
             # Skip irrelevant lines and headers
             if line.startswith('(nets'):
@@ -39,7 +36,6 @@ def parse_netlist(file_path):
                 if net_match:
                     net_name = net_match.group(1)
                     connections[net_name] = []
-                    #print(f"Found net: {net_name}")
                     continue
             
             # Detect node connections
@@ -52,7 +48,6 @@ def parse_netlist(file_path):
                     if net_name:
                         connections.setdefault(net_name, []).append((pin, pinfunction, ref))
                         refs.add(ref)
-                        #print(f"Added node: (ref: {ref}, pin: {pin}, pinfunction: {pinfunction}) to net: {net_name}")
             
             # Detect component definitions
             if in_components_section and line.startswith('(comp'):
@@ -60,7 +55,6 @@ def parse_netlist(file_path):
                 if comp_match:
                     ref = comp_match.group(1)
                     components[ref] = {}
-                    #print(f"Found component: {ref}")
                 continue
             
             # Handle component details
@@ -76,16 +70,11 @@ def parse_netlist(file_path):
                     desc_match = re.match(r'\(description "(.*?)"\)', line)
                     if desc_match:
                         components[ref]['description'] = desc_match.group(1)
-                continue
-
+    
     except FileNotFoundError:
         print(f"Error: File {file_path} not found.")
     except Exception as e:
         print(f"Error: An unexpected error occurred while parsing {file_path} - {e}")
-    
-    #print(f"Connections parsed: {connections}")
-    #print(f"References parsed: {refs}")
-    #print(f"Components parsed: {components}")
     
     return connections, refs, components
 
@@ -111,12 +100,10 @@ def count_components(components):
 
     for ref in components:
         if ref in processed_refs:
-            print(f"Skipping duplicate component: {ref}")
             continue
         
         processed_refs.add(ref)
 
-        #print(f"Processing component: {ref} - {components[ref]}")
         if ref.startswith('C'):
             counts['Capacitors'] += 1
         elif ref.startswith('R'):
@@ -145,19 +132,8 @@ def count_components(components):
     return counts
 
 
-
-def print_component_counts(counts1, counts2):
-    """Print the component counts for two netlists."""
-    print("Component Counts for Netlist 1:")
-    for key, value in counts1.items():
-        print(f"{key}: {value}")
-    
-    print("\nComponent Counts for Netlist 2:")
-    for key, value in counts2.items():
-        print(f"{key}: {value}")
-
-
 def generate_stats(components):
+    """Generate detailed statistics from the components."""
     stats = {
         'Total Refs': 0,
         'Total Capacitors': 0,
@@ -177,43 +153,66 @@ def generate_stats(components):
     }
 
     refs = set()
-    
+    detailed_components = {
+        'Capacitors': [],
+        'Resistors': [],
+        'ICs': [],
+        'FETs': [],
+        'Connectors': [],
+        'Inductors': [],
+        'Mounting Holes': [],
+        'TestPads': [],
+        'Fiducials': [],
+        'Diodes/LEDs': [],
+        'Crystals': [],
+        'Others': []
+    }
+
     for ref in components:
         refs.add(ref)
         stats['Total Components'] += 1
         if ref.startswith('C'):
             stats['Total Capacitors'] += 1
+            detailed_components['Capacitors'].append(ref)
         elif ref.startswith('R'):
             stats['Total Resistors'] += 1
+            detailed_components['Resistors'].append(ref)
         elif ref.startswith('IC') or ref.startswith('U'):
             stats['Total ICs'] += 1
+            detailed_components['ICs'].append(ref)
         elif ref.startswith('Q') or ref.startswith('T') or ref.startswith('FET'):
             stats['Total FETs'] += 1
+            detailed_components['FETs'].append(ref)
         elif ref.startswith('J') or ref.startswith('GPIO'):
             stats['Total Connectors'] += 1
+            detailed_components['Connectors'].append(ref)
         elif ref.startswith('L'):
             stats['Total Inductors'] += 1
+            detailed_components['Inductors'].append(ref)
         elif ref.startswith('MH') or ref.startswith('H'):
             stats['Total Mounting Holes'] += 1
+            detailed_components['Mounting Holes'].append(ref)
         elif ref.startswith('TP'):
             stats['Total TestPads'] += 1
-            print(f"Debug: Found TestPad {ref}")  # Debug print
+            detailed_components['TestPads'].append(ref)
         elif ref.startswith('FID'):
             stats['Total Fiducials'] += 1
+            detailed_components['Fiducials'].append(ref)
         elif ref.startswith('D'):
             stats['Total Diodes/LEDs'] += 1
+            detailed_components['Diodes/LEDs'].append(ref)
         elif ref.startswith('X'):
             stats['Total Crystals'] += 1
+            detailed_components['Crystals'].append(ref)
         else:
             stats['Total Others'] += 1
+            detailed_components['Others'].append(ref)
 
     stats['Total Refs'] = len(refs)
-    #print(stats)
-    return stats
+    return stats, detailed_components
 
 
-
-def generate_html_report(connections1, connections2, output_file, file1_name, file2_name, stats1, stats2):
+def generate_html_report(connections1, connections2, output_file, file1_name, file2_name, stats1, stats2, details1, details2):
     env = Environment(loader=FileSystemLoader('.'))
     template = env.get_template('template.html')
 
@@ -241,89 +240,99 @@ def generate_html_report(connections1, connections2, output_file, file1_name, fi
         refs1 = ', '.join(set(value['refs1'])) if value['refs1'] else 'N/A'
         refs2 = ', '.join(set(value['refs2'])) if value['refs2'] else 'N/A'
 
-        row_class = 'match' if value['net1'] == value['net2'] else 'mismatch'
+        if net1_name == net2_name:
+            class_name = 'match'
+        else:
+            class_name = 'mismatch'
 
         rows.append({
-            'class': row_class,
-            'pin1': pin if value['net1'] else 'N/A',
-            'pinfunction1': pinfunction if value['net1'] else 'N/A',
-            'ref1': refs1,
+            'pin1': pin,
+            'pinfunction1': pinfunction,
+            'ref1': value['refs1'][0] if value['refs1'] else 'N/A',
             'net1_name': net1_name,
-            'pin2': pin if value['net2'] else 'N/A',
-            'pinfunction2': pinfunction if value['net2'] else 'N/A',
-            'ref2': refs2,
-            'net2_name': net2_name
+            'pin2': pin,
+            'pinfunction2': pinfunction,
+            'ref2': value['refs2'][0] if value['refs2'] else 'N/A',
+            'net2_name': net2_name,
+            'class': class_name
         })
 
     rows.sort(key=lambda x: x['class'] == 'match', reverse=False)  # Sort with matches first
 
-    # Debug print
-    #print(f"Stats1: {stats1}")
-    #print(f"Stats2: {stats2}")
-    
-    report = template.render(
-        file1_name=file1_name,
-        file2_name=file2_name,
-        total_refs1=stats1['Total Refs'],
-        total_refs2=stats2['Total Refs'],
-        total_capacitors1=stats1['Total Capacitors'],
-        total_capacitors2=stats2['Total Capacitors'],
-        total_resistors1=stats1['Total Resistors'],
-        total_resistors2=stats2['Total Resistors'],
-        total_ics1=stats1['Total ICs'],
-        total_ics2=stats2['Total ICs'],
-        total_fets1=stats1['Total FETs'],
-        total_fets2=stats2['Total FETs'],
-        total_connectors1=stats1['Total Connectors'],
-        total_connectors2=stats2['Total Connectors'],
-        total_inductors1=stats1['Total Inductors'],
-        total_inductors2=stats2['Total Inductors'],
-        total_mounting_holes1=stats1['Total Mounting Holes'],
-        total_mounting_holes2=stats2['Total Mounting Holes'],
-        total_testpads1=stats1['Total TestPads'],
-        total_testpads2=stats2['Total TestPads'],
-        total_fiducials1=stats1['Total Fiducials'],
-        total_fiducials2=stats2['Total Fiducials'],
-        total_diodes_leds1=stats1['Total Diodes/LEDs'],
-        total_diodes_leds2=stats2['Total Diodes/LEDs'],
-        total_crystals1=stats1['Total Crystals'],
-        total_crystals2=stats2['Total Crystals'],
-        total_others1=stats1['Total Others'],
-        total_others2=stats2['Total Others'],
-        total_nets1=stats1['Total Nets'],
-        total_nets2=stats2['Total Nets'],
-        data_rows=rows
-    )
-
-    try:
-        with open(output_file, 'w') as report_file:
-            report_file.write(report)
-    except Exception as e:
-        print(f"Error: An unexpected error occurred while writing to {output_file} - {e}")
-    else:
-        print("HTML report generated successfully.")
+    with open(output_file, 'w') as file:
+        file.write(template.render(
+            file1_name=file1_name,
+            file2_name=file2_name,
+            data_rows=rows,
+            total_capacitors1=stats1['Total Capacitors'],
+            total_resistors1=stats1['Total Resistors'],
+            total_ics1=stats1['Total ICs'],
+            total_fets1=stats1['Total FETs'],
+            total_connectors1=stats1['Total Connectors'],
+            total_inductors1=stats1['Total Inductors'],
+            total_mounting_holes1=stats1['Total Mounting Holes'],
+            total_testpads1=stats1['Total TestPads'],
+            total_fiducials1=stats1['Total Fiducials'],
+            total_diodes_leds1=stats1['Total Diodes/LEDs'],
+            total_crystals1=stats1['Total Crystals'],
+            total_others1=stats1['Total Others'],
+            total_refs1=stats1['Total Refs'],
+            total_capacitors2=stats2['Total Capacitors'],
+            total_resistors2=stats2['Total Resistors'],
+            total_ics2=stats2['Total ICs'],
+            total_fets2=stats2['Total FETs'],
+            total_connectors2=stats2['Total Connectors'],
+            total_inductors2=stats2['Total Inductors'],
+            total_mounting_holes2=stats2['Total Mounting Holes'],
+            total_testpads2=stats2['Total TestPads'],
+            total_fiducials2=stats2['Total Fiducials'],
+            total_diodes_leds2=stats2['Total Diodes/LEDs'],
+            total_crystals2=stats2['Total Crystals'],
+            total_others2=stats2['Total Others'],
+            total_refs2=stats2['Total Refs'],
+            capacitors1=details1['Capacitors'],
+            resistors1=details1['Resistors'],
+            ics1=details1['ICs'],
+            fets1=details1['FETs'],
+            connectors1=details1['Connectors'],
+            inductors1=details1['Inductors'],
+            mounting_holes1=details1['Mounting Holes'],
+            testpads1=details1['TestPads'],
+            fiducials1=details1['Fiducials'],
+            diodes_leds1=details1['Diodes/LEDs'],
+            crystals1=details1['Crystals'],
+            others1=details1['Others'],
+            capacitors2=details2['Capacitors'],
+            resistors2=details2['Resistors'],
+            ics2=details2['ICs'],
+            fets2=details2['FETs'],
+            connectors2=details2['Connectors'],
+            inductors2=details2['Inductors'],
+            mounting_holes2=details2['Mounting Holes'],
+            testpads2=details2['TestPads'],
+            fiducials2=details2['Fiducials'],
+            diodes_leds2=details2['Diodes/LEDs'],
+            crystals2=details2['Crystals'],
+            others2=details2['Others']
+        ))
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate an HTML report comparing two KiCad netlists.')
-    parser.add_argument('netlist1', type=str, help='Path to the first netlist file')
-    parser.add_argument('netlist2', type=str, help='Path to the second netlist file')
-    parser.add_argument('output', type=str, help='Path to the output HTML report file')
-
+    parser = argparse.ArgumentParser(description="Compare two KiCad netlist files.")
+    parser.add_argument("file1", help="Path to the first KiCad netlist file.")
+    parser.add_argument("file2", help="Path to the second KiCad netlist file.")
+    parser.add_argument("output", help="Path to the output HTML file.")
+    
     args = parser.parse_args()
 
-    connections1, refs1, components1 = parse_netlist(args.netlist1)
-    connections2, refs2, components2 = parse_netlist(args.netlist2)
+    connections1, refs1, components1 = parse_netlist(args.file1)
+    connections2, refs2, components2 = parse_netlist(args.file2)
 
-    counts1 = count_components(components1)
-    counts2 = count_components(components2)
+    stats1, details1 = generate_stats(components1)
+    stats2, details2 = generate_stats(components2)
 
-    stats1 = generate_stats(components1)
-    stats2 = generate_stats(components2)
+    generate_html_report(connections1, connections2, args.output, args.file1, args.file2, stats1, stats2, details1, details2)
 
-    print_component_counts(counts1, counts2)
-    
-    generate_html_report(connections1, connections2, args.output, args.netlist1, args.netlist2, stats1, stats2)
 
 if __name__ == "__main__":
     main()

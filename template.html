@@ -67,13 +67,23 @@
         .mismatch-box {
             background-color: #f8d7da;
         }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* Space between buttons */
+        }
+        .modal-lg-custom1 {
+            max-width: 60%; /* Adjust the percentage as needed */
+        }
+        .modal-lg-custom2 {
+            max-width: 80%; /* Adjust the percentage as needed */
+        }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="page-heading">
             <h1>Netlist Comparison Report</h1>
-            <h2>Comparison Summary</h2>
         </div>
 
         <div class="legend">
@@ -125,14 +135,17 @@
             </table>
         </div>
 
-        <button class="btn btn-primary" data-toggle="modal" data-target="#summaryModal">Components Summary</button>
+        <div class="button-group">
+            <button class="btn btn-primary" data-toggle="modal" data-target="#summaryModal">Component Count Summary</button>
+            <button class="btn btn-secondary" data-toggle="modal" data-target="#detailedSummaryModal">Detailed Component Summary</button>
+        </div>
         
         <!-- Summary Modal -->
         <div class="modal fade" id="summaryModal" tabindex="-1" role="dialog" aria-labelledby="summaryModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
+            <div class="modal-dialog modal-lg-custom1" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="summaryModalLabel">Components Summary</h5>
+                        <h5 class="modal-title" id="summaryModalLabel">Component Count Summary</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
@@ -141,7 +154,7 @@
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th>Type</th>
+                                    <th>Component Type</th>
                                     <th>{{ file1_name }}</th>
                                     <th>{{ file2_name }}</th>
                                 </tr>
@@ -228,11 +241,100 @@
             </div>
         </div>
 
+        <!-- Detailed Summary Modal -->
+        <div class="modal fade" id="detailedSummaryModal" tabindex="-1" role="dialog" aria-labelledby="detailedSummaryModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg-custom2" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="detailedSummaryModalLabel">Detailed Component Summary</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Component Type</th>
+                                    <th>{{ file1_name }}</th>
+                                    <th>{{ file2_name }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Capacitors</td>
+                                    <td><b>{{ capacitors1|length }}</b> - {{ capacitors1|join(', ') }}</td>
+                                    <td><b>{{ capacitors2|length }}</b> - {{ capacitors2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Resistors</td>
+                                    <td><b>{{ resistors1|length }}</b> - {{ resistors1|join(', ') }}</td>
+                                    <td><b>{{ resistors2|length }}</b> - {{ resistors2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>ICs</td>
+                                    <td><b>{{ ics1|length }}</b> - {{ ics1|join(', ') }}</td>
+                                    <td><b>{{ ics2|length }}</b> - {{ ics2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>FETs</td>
+                                    <td><b>{{ fets1|length }}</b> - {{ fets1|join(', ') }}</td>
+                                    <td><b>{{ fets2|length }}</b> - {{ fets2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Connectors</td>
+                                    <td><b>{{ connectors1|length }}</b> - {{ connectors1|join(', ') }}</td>
+                                    <td><b>{{ connectors2|length }}</b> - {{ connectors2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Inductors</td>
+                                    <td><b>{{ inductors1|length }}</b> - {{ inductors1|join(', ') }}</td>
+                                    <td><b>{{ inductors2|length }}</b> - {{ inductors2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Mounting Holes</td>
+                                    <td><b>{{ mounting_holes1|length }}</b> - {{ mounting_holes1|join(', ') }}</td>
+                                    <td><b>{{ mounting_holes2|length }}</b> - {{ mounting_holes2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>TestPads</td>
+                                    <td><b>{{ testpads1|length }}</b> - {{ testpads1|join(', ') }}</td>
+                                    <td><b>{{ testpads2|length }}</b> - {{ testpads2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Fiducials</td>
+                                    <td><b>{{ fiducials1|length }}</b> - {{ fiducials1|join(', ') }}</td>
+                                    <td><b>{{ fiducials2|length }}</b> - {{ fiducials2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Diodes/LEDs</td>
+                                    <td><b>{{ diodes_leds1|length }}</b> - {{ diodes_leds1|join(', ') }}</td>
+                                    <td><b>{{ diodes_leds2|length }}</b> - {{ diodes_leds2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Crystals</td>
+                                    <td><b>{{ crystals1|length }}</b> - {{ crystals1|join(', ') }}</td>
+                                    <td><b>{{ crystals2|length }}</b> - {{ crystals2|join(', ') }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Others</td>
+                                    <td><b>{{ others1|length }}</b> - {{ others1|join(', ') }}</td>
+                                    <td><b>{{ others2|length }}</b> - {{ others2|join(', ') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Bootstrap JS and dependencies -->
+    <!-- jQuery and Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
